@@ -100,23 +100,26 @@ def print_result(result, output_image, timestamp_ms):
                 continue
 
             gesture_name = gesture.category_name
-            # Extract Handedness (Left or Right)
             handedness = result.handedness[i][0].category_name 
 
-            if gesture_name in GESTURE_KEY_MAP:
-                gesture_to_key[gesture_name] = GESTURE_KEY_MAP[gesture_name]
-                detected_gestures.add(gesture_name)
-            else:
+            # if we detect a controller specific gesture, start up this bit
+            if GESTURE_KEY_MAP.get(gesture_name) == 'controller':
+                # init 
                 landmarks = None
                 if result.hand_landmarks and len(result.hand_landmarks) > i:
                     landmarks = result.hand_landmarks[i]
+                # movement controller
                 movement_key = movement_controller(gesture_name, landmarks)
                 if movement_key:
                     gesture_to_key[gesture_name] = movement_key
                     detected_gestures.add(gesture_name)
 
-    keys_to_hold_this_frame = set()
+            # default behaviour
+            elif gesture_name in GESTURE_KEY_MAP:
+                gesture_to_key[gesture_name] = GESTURE_KEY_MAP[gesture_name]
+                detected_gestures.add(gesture_name)
 
+    keys_to_hold_this_frame = set()
     for gesture in detected_gestures:
         base_key = gesture_to_key.get(gesture)
         if not base_key:
