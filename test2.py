@@ -148,49 +148,45 @@ def print_result(result, output_image, timestamp_ms):
             pyautogui.keyUp(key)
         held_keys.remove(key)
 
-options = GestureRecognizerOptions(
-    base_options=BaseOptions(model_asset_path=model_path),
-    running_mode=VisionRunningMode.LIVE_STREAM,
-    num_hands=2,
-    result_callback=print_result
-)
+def main():
+    options = GestureRecognizerOptions(
+        base_options=BaseOptions(model_asset_path=model_path),
+        running_mode=VisionRunningMode.LIVE_STREAM,
+        num_hands=2,
+        result_callback=print_result
+    )
 
-recognizer = GestureRecognizer.create_from_options(options)
-cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    recognizer = GestureRecognizer.create_from_options(options)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret: break
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret: break
 
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
-    timestamp_ms = int(time.perf_counter() * 1000)
-    recognizer.recognize_async(mp_image, timestamp_ms)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
+        timestamp_ms = int(time.perf_counter() * 1000)
+        recognizer.recognize_async(mp_image, timestamp_ms)
 
-    draw_landmarks(frame, latest_result)
+        draw_landmarks(frame, latest_result)
 
-    # --- UPDATED RENDERING BLOCK ---
-    if latest_result and latest_result.gestures:
-        for i, hand_gestures in enumerate(latest_result.gestures):
-            gesture = hand_gestures[0]
-            category_name = gesture.category_name
-            score = round(gesture.score * 100, 2)
-            
-            # Display Gesture and Confidence
-            gesture_text = f"Gesture: {category_name} ({score}%)"
-            cv2.putText(frame, gesture_text, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+        # --- UPDATED RENDERING BLOCK ---
+        if latest_result and latest_result.gestures:
+            for i, hand_gestures in enumerate(latest_result.gestures):
+                gesture = hand_gestures[0]
+                category_name = gesture.category_name
+                score = round(gesture.score * 100, 2)
+                
+                # Display Gesture and Confidence
+                gesture_text = f"Gesture: {category_name} ({score}%)"
+                cv2.putText(frame, gesture_text, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
-    if current_angle != 0:
-        # Render both the Handedness and the Adjusted Angle
-        text = f"{current_hand} Hand | Adj Tilt: {int(current_angle)} deg"
-        color = (0, 255, 0) # Green
-        if current_angle > ANGLE_THRESHOLD: color = (255, 0, 0) # Blue
-        elif current_angle < -ANGLE_THRESHOLD: color = (0, 0, 255) # Red
-        cv2.putText(frame, text, (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2)
+        cv2.imshow("Webcam Feed", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'): break
 
-    cv2.imshow("Webcam Feed", frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'): break
+    cap.release()
+    cv2.destroyAllWindows()
+    for key in list(held_keys): pyautogui.keyUp(key)  
 
-cap.release()
-cv2.destroyAllWindows()
-for key in list(held_keys): pyautogui.keyUp(key)  
+if __name__ == '__main__':
+    main()
