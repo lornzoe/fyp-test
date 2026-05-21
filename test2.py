@@ -128,6 +128,12 @@ def main():
 
     recognizer = GestureRecognizer.create_from_options(options)
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    success = cap.set(cv2.CAP_PROP_ZOOM, 0)
+
+    if success:
+        print("Zoom 0 set")
+    else:
+        print("Failed to adjust zoom.")
 
     while cap.isOpened():
         ret, frame = cap.read()
