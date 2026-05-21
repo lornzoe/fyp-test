@@ -135,8 +135,8 @@ def main():
     else:
         print("Failed to adjust zoom.")
     
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 854)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     while cap.isOpened():
         ret, frame = cap.read()
