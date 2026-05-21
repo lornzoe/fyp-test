@@ -5,6 +5,7 @@ import time
 
 # --- Configuration ---
 TAP_THRESHOLD = 0.5
+GESTURE_SCORE_THRESHOLD = 0.7
 pyautogui.PAUSE = 0
 pyautogui.FAILSAFE = False
 
@@ -69,14 +70,17 @@ def print_result(result, output_image, timestamp_ms):
 
     if result.gestures:
         # Check for emergency stop
-        if 'Closed_Fist' in [g[0].category_name for g in result.gestures]:
+        if any(g[0].category_name == 'Closed_Fist' and g[0].score >= GESTURE_SCORE_THRESHOLD for g in result.gestures):
             for key in list(held_keys): pyautogui.keyUp(key)
             held_keys.clear()
             gesture_start_times.clear()
             return
 
         for i, hand_gestures in enumerate(result.gestures):
-            gesture_name = hand_gestures[0].category_name
+            gesture = hand_gestures[0]
+            if gesture.score < GESTURE_SCORE_THRESHOLD:
+                continue
+            gesture_name = gesture.category_name
             # Extract Handedness (Left or Right)
             handedness = result.handedness[i][0].category_name 
             
@@ -160,7 +164,7 @@ def main():
                     handedness = latest_result.handedness[i][0].category_name
 
                 gesture_text = f"{handedness}: {category_name} ({score}%)"
-                y = 90 + i * 30
+                y = 90 + (i - 1) * 30
                 cv2.putText(frame, gesture_text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         cv2.imshow("Webcam Feed", frame)
