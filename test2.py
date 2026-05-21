@@ -8,12 +8,21 @@ from mymaps import GESTURE_PROFILES
 # --- Configuration ---
 TAP_THRESHOLD = 0.5
 GESTURE_SCORE_THRESHOLD = 0.7
+MOUSE_SENSITIVITY = 2.0  # Adjust this to make relative mouse movement faster/slower
 pyautogui.PAUSE = 0
 pyautogui.FAILSAFE = False
+
+# Get screen resolution for mouse scaling
+SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
 
 # Tracking state
 gesture_start_times = {}
 held_keys = set()
+
+# Relative mouse state
+mouse_active = False
+hand_origin = (0.0, 0.0)
+mouse_origin = (0, 0)
 
 # Global variables for rendering
 latest_result = None
@@ -24,16 +33,6 @@ BaseOptions = mp.tasks.BaseOptions
 GestureRecognizer = mp.tasks.vision.GestureRecognizer
 GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
-
-# For Arknights: Endfield
-# GESTURE_KEY_MAP = {
-#     # 'Pointing_Up': 'w',
-#     # 'Open_Palm': 'space',
-#     # 'Thumb_Up': 'a',
-#     # 'Thumb_Down': 'd',
-#     # 'ILoveYou': 's',
-#     # 'Victory': 'w'
-# }
 
 GESTURE_KEY_MAP = GESTURE_PROFILES.get('game', {})
 
@@ -65,7 +64,6 @@ def draw_landmarks(image, result):
         for pt in points:
             cv2.circle(image, pt, 5, (0, 255, 0), -1)
 
-
 def movement_controller(gesture_name, landmarks):
     if gesture_name == 'two_up':
         return 'w'
@@ -77,14 +75,41 @@ def movement_controller(gesture_name, landmarks):
         return 'a' if index_tip.x < wrist.x else 'd'
     return None
 
+def mouse_controller(landmarks):
+    global mouse_active, hand_origin, mouse_origin
+    
+    if not landmarks:
+        return
+        
+    wrist = landmarks[0] 
+    
+    if not mouse_active:
+        mouse_active = True
+        hand_origin = (wrist.x, wrist.y)
+        mouse_origin = pyautogui.position()
+    else:
+        dx = wrist.x - hand_origin[0]
+        dy = wrist.y - hand_origin[1]
+        
+        target_x = int(mouse_origin[0] + (dx * SCREEN_WIDTH * MOUSE_SENSITIVITY))
+        target_y = int(mouse_origin[1] + (dy * SCREEN_HEIGHT * MOUSE_SENSITIVITY))
+        
+        try:
+            pyautogui.moveTo(target_x, target_y, _pause=False)
+        except pyautogui.FailSafeException:
+            pass 
+
 
 def print_result(result, output_image, timestamp_ms):
     global gesture_start_times, held_keys, latest_result
-    latest_result = result
+    global mouse_active # Only need mouse_active here to reset it
     
+    latest_result = result
     current_time = timestamp_ms / 1000.0  
     detected_gestures = set()
     gesture_to_key = {}
+    
+    right_one_detected_this_frame = False
 
     if result.gestures:
         # Check for emergency stop
@@ -92,6 +117,7 @@ def print_result(result, output_image, timestamp_ms):
             for key in list(held_keys): pyautogui.keyUp(key)
             held_keys.clear()
             gesture_start_times.clear()
+            mouse_active = False # Reset mouse state
             return
 
         for i, hand_gestures in enumerate(result.gestures):
@@ -100,14 +126,23 @@ def print_result(result, output_image, timestamp_ms):
                 continue
 
             gesture_name = gesture.category_name
-            handedness = result.handedness[i][0].category_name 
+            
+            raw_handedness = result.handedness[i][0].category_name 
+            if raw_handedness == 'Left': handedness = 'Right'
+            elif raw_handedness == 'Right': handedness = 'Left'
+            else: handedness = 'Unknown'
 
-            # if we detect a controller specific gesture, start up this bit
+            landmarks = None
+            if result.hand_landmarks and len(result.hand_landmarks) > i:
+                landmarks = result.hand_landmarks[i]
+
+            # mouse controller
+            if gesture_name == 'one' and handedness == 'Right':
+                right_one_detected_this_frame = True
+                mouse_controller(landmarks)
+                continue
+
             if GESTURE_KEY_MAP.get(gesture_name) == 'controller':
-                # init 
-                landmarks = None
-                if result.hand_landmarks and len(result.hand_landmarks) > i:
-                    landmarks = result.hand_landmarks[i]
                 # movement controller
                 movement_key = movement_controller(gesture_name, landmarks)
                 if movement_key:
@@ -118,6 +153,10 @@ def print_result(result, output_image, timestamp_ms):
             elif gesture_name in GESTURE_KEY_MAP:
                 gesture_to_key[gesture_name] = GESTURE_KEY_MAP[gesture_name]
                 detected_gestures.add(gesture_name)
+
+    # If we lose the 'one' gesture on the right hand, reset the active state
+    if not right_one_detected_this_frame:
+        mouse_active = False
 
     keys_to_hold_this_frame = set()
     for gesture in detected_gestures:
@@ -195,6 +234,7 @@ def main():
         frame = cv2.flip(frame, 1)
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
+
         timestamp_ms = int(time.perf_counter() * 1000)
         recognizer.recognize_async(mp_image, timestamp_ms)
 

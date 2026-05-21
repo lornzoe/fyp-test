@@ -84,10 +84,10 @@ WUTHERING_KEY_MAP = {
 
     'fist': 'none',
     'grabbing': 'none',
-    'grip': 'none',
+    'grip': 'alt',
     'palm': 'none',
 
-    'thumb_index': 'none',	# L sign
+    'thumb_index': 'left_click',	# L sign
     'middle_finger': 'none',
     'little_finger': 'none',
 }
