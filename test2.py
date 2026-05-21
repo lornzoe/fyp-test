@@ -15,7 +15,7 @@ held_keys = set()
 # Global variables for rendering
 latest_result = None
 
-model_path = 'hagrid_30k_gesture_recognizer.task'
+model_path = 'hagridv2_gesture_recognizer.task'
 
 BaseOptions = mp.tasks.BaseOptions
 GestureRecognizer = mp.tasks.vision.GestureRecognizer
@@ -104,7 +104,8 @@ def print_result(result, output_image, timestamp_ms):
 
     # Sync keys
     for key in (keys_to_hold_this_frame - held_keys):
-        # explicit for clicks since they c
+        if key == 'none': continue
+        # explicit for clicks since they dont have keyDown
         if key == 'left_click':
             pyautogui.mouseDown()
         else:
@@ -145,10 +146,13 @@ def main():
                 gesture = hand_gestures[0]
                 category_name = gesture.category_name
                 score = round(gesture.score * 100, 2)
-                
-                # Display Gesture and Confidence
-                gesture_text = f"Gesture: {category_name} ({score}%)"
-                cv2.putText(frame, gesture_text, (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                handedness = "Unknown"
+                if latest_result.handedness and len(latest_result.handedness) > i:
+                    handedness = latest_result.handedness[i][0].category_name
+
+                gesture_text = f"{handedness}: {category_name} ({score}%)"
+                y = 90 + i * 30
+                cv2.putText(frame, gesture_text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
         cv2.imshow("Webcam Feed", frame)
         if cv2.waitKey(1) & 0xFF == ord('q'): break

@@ -19,3 +19,75 @@
 #     'Victory': 'e'
 # }
 
+# template
+DEFAULT_KEY_MAP = {
+    'one': 'none',
+    'two_up': 'none',
+    'two_up_inverted': 'none',
+    'three': 'none',
+    'three2': 'none',
+    'three3': 'none',
+    'four': 'none',
+
+    'like': 'none',       # Thumbs up
+    'dislike': 'none',    # Thumbs down
+    'ok': 'none',         # OK sign
+    'peace': 'none',
+    'peace_inverted': 'none',
+    'rock': 'none',       # Rock on sign
+    'holy': 'none',
+
+    'call': 'none',
+    'mute': 'none',
+    'point': 'none',
+    'stop': 'none',
+    'stop_inverted': 'none',
+    'three_gun': 'none',
+
+    'fist': 'none',
+    'grabbing': 'none',
+    'grip': 'none',
+    'palm': 'none',
+
+    'thumb_index': 'none',	# L sign
+    'middle_finger': 'none',
+    'little_finger': 'none',
+}
+
+WUTHERING_KEY_MAP = {
+	# for movement control
+    'two_up': 'none',
+    'two_up_inverted': 'none',
+    'three_gun': 'none',
+
+	# for minor cursor control
+    'one': 'none',
+    'point': 'none',
+
+    'three': 'none',
+    'three2': 'none',
+    'three3': 'none',
+    'four': 'none',
+
+    'like': 'none',       # Thumbs up
+    'dislike': 'none',    # Thumbs down
+    'ok': 'none',         # OK sign
+    'peace': 'none',
+    'peace_inverted': 'none',
+    'rock': 'none',       # Rock on sign
+    'holy': 'none',
+
+    'call': 'none',
+    'mute': 'none',
+    'stop': 'none',
+    'stop_inverted': 'none',
+
+    'fist': 'none',
+    'grabbing': 'none',
+    'grip': 'none',
+    'palm': 'none',
+
+    'thumb_index': 'none',	# L sign
+    'middle_finger': 'none',
+    'little_finger': 'none',
+}
