@@ -20,8 +20,8 @@ curr_x, curr_y = 0, 0
 X_MIN, X_MAX = 0.25, 0.75 
 Y_MIN, Y_MAX = 0.25, 0.75
 
-WIDTH = 640
-HEIGHT = 480
+WIDTH = 960
+HEIGHT = 540
 
 # calculation for virtual trackpad area, so that we don't have to do it every time
 box_x1, box_y1 = int(X_MIN * WIDTH), int(Y_MIN * HEIGHT)
@@ -45,16 +45,16 @@ screen_width, screen_height = pyautogui.size()
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 if not cap.isOpened():
-    print("Error: Could not open webcam.")
+    print("Error: Could not open webcam")
 else:
-    print("Webcam successfully initialized!")
+    print("Webcam successfully initialized")
 
-# Stuff for optimisation
+# optimisation
 cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
 
-# defines,
+# defines
 
 def draw_trackpad():
     cv2.rectangle(frame, (box_x1, box_y1), (box_x2, box_y2), (255, 255, 0), 2)
@@ -186,7 +186,7 @@ while cap.isOpened():
         print("Toggled debug_landmarks")
     elif key == ord('m'):
         game_mode = not game_mode
-        print(f"Switched mode. Game Mode is now: {game_mode}")
+        print(f"Switched mode, game_mode is now: {game_mode}")
 
 # Cleanup
 cap.release()
