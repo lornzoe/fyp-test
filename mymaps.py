@@ -56,9 +56,9 @@ DEFAULT_KEY_MAP = {
 
 WUTHERING_KEY_MAP = {
 	# for movement control
-    'two_up': 'none',
-    'two_up_inverted': 'none',
-    'three_gun': 'none',
+    'two_up': 'unique',
+    'two_up_inverted': 'unique',
+    'three_gun': 'unique',
 
 	# for minor cursor control
     'one': 'none',
@@ -90,4 +90,9 @@ WUTHERING_KEY_MAP = {
     'thumb_index': 'none',	# L sign
     'middle_finger': 'none',
     'little_finger': 'none',
+}
+
+GESTURE_PROFILES = {
+	'template': DEFAULT_KEY_MAP,
+    'game': WUTHERING_KEY_MAP
 }
