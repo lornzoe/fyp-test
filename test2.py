@@ -72,7 +72,8 @@ def movement_controller(gesture_name, landmarks):
     if gesture_name == 'three_gun' and landmarks:
         wrist = landmarks[0]
         index_tip = landmarks[8]
-        return 'a' if index_tip.x < wrist.x else 'd'
+        if index_tip.x < wrist.x: return 'a'
+        return 'd'
     return None
 
 def mouse_controller(landmarks):
@@ -202,11 +203,7 @@ def print_result(result, output_image, timestamp_ms):
         else:
             pyautogui.keyUp(key)
         held_keys.remove(key)
-
-    pressed_keys = sorted(held_keys)
-    print('Pressed keys:', pressed_keys)
-
-    return pressed_keys
+    return held_keys
 
 def main():
     options = GestureRecognizerOptions(
@@ -225,8 +222,8 @@ def main():
     else:
         print("Failed to adjust zoom.")
     
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 854)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
 
     while cap.isOpened():
         ret, frame = cap.read()
