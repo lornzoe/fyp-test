@@ -2,12 +2,9 @@ import mediapipe as mp
 import cv2
 import pyautogui
 import time
-import math
 
 # --- Configuration ---
 TAP_THRESHOLD = 0.5
-ANGLE_THRESHOLD = 15
-HAND_TILT_OFFSET = 20 # NEW: Degrees to offset the natural resting tilt
 pyautogui.PAUSE = 0
 pyautogui.FAILSAFE = False
 
@@ -17,8 +14,6 @@ held_keys = set()
 
 # Global variables for rendering
 latest_result = None
-current_angle = 0.0
-current_hand = "Unknown" # NEW: Track which hand is controlling the tilt
 
 model_path = 'hagrid_30k_gesture_recognizer.task'
 
@@ -66,13 +61,11 @@ def draw_landmarks(image, result):
             cv2.circle(image, pt, 5, (0, 255, 0), -1)
 
 def print_result(result, output_image, timestamp_ms):
-    global gesture_start_times, held_keys, latest_result, current_angle, current_hand
+    global gesture_start_times, held_keys, latest_result
     latest_result = result
     
     current_time = timestamp_ms / 1000.0  
     detected_gestures = set()
-    pointing_up_angle = 0 
-    active_hand_name = "Unknown"
 
     if result.gestures:
         # Check for emergency stop
@@ -80,8 +73,6 @@ def print_result(result, output_image, timestamp_ms):
             for key in list(held_keys): pyautogui.keyUp(key)
             held_keys.clear()
             gesture_start_times.clear()
-            current_angle = 0.0
-            current_hand = "Unknown"
             return
 
         for i, hand_gestures in enumerate(result.gestures):
@@ -92,26 +83,7 @@ def print_result(result, output_image, timestamp_ms):
             if gesture_name in GESTURE_KEY_MAP:
                 detected_gestures.add(gesture_name)
                 
-                # if gesture_name == 'Pointing_Up':
-                #     active_hand_name = handedness
-                #     landmarks = result.hand_landmarks[i]
-                #     wrist = landmarks[0]
-                #     index_mcp = landmarks[5]
                     
-                #     dx = index_mcp.x - wrist.x
-                #     dy = wrist.y - index_mcp.y 
-                #     raw_angle = math.degrees(math.atan2(dx, dy))
-                    
-                #     if handedness == 'Right':
-                #         pointing_up_angle = raw_angle - HAND_TILT_OFFSET
-                #     elif handedness == 'Left':
-                #         pointing_up_angle = raw_angle + HAND_TILT_OFFSET
-                #     else:
-                #         pointing_up_angle = raw_angle
-                    
-    current_angle = pointing_up_angle
-    if active_hand_name != "Unknown":
-        current_hand = active_hand_name
         
     keys_to_hold_this_frame = set()
 
@@ -123,9 +95,6 @@ def print_result(result, output_image, timestamp_ms):
             duration = current_time - gesture_start_times[gesture]
             if duration >= TAP_THRESHOLD:
                 keys_to_hold_this_frame.add(base_key)
-                # if gesture == 'Pointing_Up':
-                #     if pointing_up_angle < -ANGLE_THRESHOLD: keys_to_hold_this_frame.add('d')
-                #     elif pointing_up_angle > ANGLE_THRESHOLD: keys_to_hold_this_frame.add('a')
 
     ended_gestures = set(gesture_start_times.keys()) - detected_gestures
     for gesture in ended_gestures:
