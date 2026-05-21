@@ -192,7 +192,7 @@ def main():
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret: break
-
+        frame = cv2.flip(frame, 1)
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
         timestamp_ms = int(time.perf_counter() * 1000)
@@ -207,9 +207,13 @@ def main():
                 gesture = hand_gestures[0]
                 category_name = gesture.category_name
                 score = round(gesture.score * 100, 2)
-                handedness = "Unknown"
+
+                # get handedness and flip it, because we're also flipping the feed
                 if latest_result.handedness and len(latest_result.handedness) > i:
-                    handedness = latest_result.handedness[i][0].category_name
+                    raw_handedness = latest_result.handedness[i][0].category_name
+                if raw_handedness == "Left": handedness = "Right"
+                elif raw_handedness == "Right": handedness = "Left"
+                else: handedness = "Unknown"
 
                 gesture_text = f"{handedness}: {category_name} ({score}%)"
                 y = 90 + i * 30
