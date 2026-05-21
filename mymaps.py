@@ -56,23 +56,23 @@ DEFAULT_KEY_MAP = {
 
 WUTHERING_KEY_MAP = {
 	# for movement control
-    'two_up': 'unique',
-    'two_up_inverted': 'unique',
-    'three_gun': 'unique',
+    'two_up': 'controller',
+    'two_up_inverted': 'controller',
+    'three_gun': 'controller',
 
 	# for minor cursor control
-    'one': 'none',
+    'one': '1',
     'point': 'none',
 
-    'three': 'none',
+    'three': '3',
     'three2': 'none',
     'three3': 'none',
-    'four': 'none',
+    'four': '4',
 
     'like': 'none',       # Thumbs up
     'dislike': 'none',    # Thumbs down
     'ok': 'none',         # OK sign
-    'peace': 'none',
+    'peace': '2',
     'peace_inverted': 'none',
     'rock': 'none',       # Rock on sign
     'holy': 'none',
