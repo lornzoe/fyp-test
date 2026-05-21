@@ -88,7 +88,7 @@ def print_result(result, output_image, timestamp_ms):
 
     if result.gestures:
         # Check for emergency stop
-        if any(g[0].category_name == 'Closed_Fist' and g[0].score >= GESTURE_SCORE_THRESHOLD for g in result.gestures):
+        if any(g[0].category_name == 'fist' and g[0].score >= GESTURE_SCORE_THRESHOLD for g in result.gestures):
             for key in list(held_keys): pyautogui.keyUp(key)
             held_keys.clear()
             gesture_start_times.clear()
@@ -124,18 +124,25 @@ def print_result(result, output_image, timestamp_ms):
         base_key = gesture_to_key.get(gesture)
         if not base_key:
             continue
-        if gesture not in gesture_start_times:
-            gesture_start_times[gesture] = current_time
+            
+        if GESTURE_KEY_MAP.get(gesture) == 'controller':
+            keys_to_hold_this_frame.add(base_key)
+            gesture_start_times[gesture] = current_time # Keep tracking active
         else:
-            duration = current_time - gesture_start_times[gesture]
-            if duration >= TAP_THRESHOLD:
-                keys_to_hold_this_frame.add(base_key)
+            if gesture not in gesture_start_times:
+                gesture_start_times[gesture] = current_time
+            else:
+                duration = current_time - gesture_start_times[gesture]
+                if duration >= TAP_THRESHOLD:
+                    keys_to_hold_this_frame.add(base_key)
 
     ended_gestures = set(gesture_start_times.keys()) - detected_gestures
     for gesture in ended_gestures:
-        key_to_press = gesture_to_key.get(gesture) or GESTURE_KEY_MAP.get(gesture)
-        if key_to_press and current_time - gesture_start_times[gesture] < TAP_THRESHOLD:
-            pyautogui.press(key_to_press)
+        if GESTURE_KEY_MAP.get(gesture) != 'controller':
+            key_to_press = gesture_to_key.get(gesture) or GESTURE_KEY_MAP.get(gesture)
+            if key_to_press and current_time - gesture_start_times[gesture] < TAP_THRESHOLD:
+                pyautogui.press(key_to_press)
+        
         del gesture_start_times[gesture]
 
     # Sync keys
