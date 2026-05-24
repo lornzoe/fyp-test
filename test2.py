@@ -2,13 +2,16 @@ import mediapipe as mp
 import cv2
 import pyautogui
 import time
+import ctypes
 
 from mymaps import GESTURE_PROFILES
 
 # --- Configuration ---
-TAP_THRESHOLD = 0.5
+TAP_THRESHOLD = 0.075
 GESTURE_SCORE_THRESHOLD = 0.7
-MOUSE_SENSITIVITY = 2.0  # Adjust this to make relative mouse movement faster/slower
+MOUSE_SENSITIVITY = 1.5 
+MOUSEEVENTF_MOVE = 0x0001 
+
 pyautogui.PAUSE = 0
 pyautogui.FAILSAFE = False
 
@@ -21,8 +24,7 @@ held_keys = set()
 
 # Relative mouse state
 mouse_active = False
-hand_origin = (0.0, 0.0)
-mouse_origin = (0, 0)
+prev_hand_pos = None 
 
 # Global variables for rendering
 latest_result = None
@@ -34,7 +36,7 @@ GestureRecognizer = mp.tasks.vision.GestureRecognizer
 GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 
-GESTURE_KEY_MAP = GESTURE_PROFILES.get('game', {})
+GESTURE_KEY_MAP = GESTURE_PROFILES.get('wuthering', {})
 
 # --- CUSTOM DRAWING FUNCTION ---
 def draw_landmarks(image, result):
@@ -77,31 +79,33 @@ def movement_controller(gesture_name, landmarks):
     return None
 
 def mouse_controller(landmarks):
-    global mouse_active, hand_origin, mouse_origin
+    global mouse_active, prev_hand_pos
     
     if not landmarks:
+        mouse_active = False
+        prev_hand_pos = None
         return
         
     wrist = landmarks[0] 
     
     if not mouse_active:
         mouse_active = True
-        hand_origin = (wrist.x, wrist.y)
-        mouse_origin = pyautogui.position()
-    else:
-        dx = wrist.x - hand_origin[0]
-        dy = wrist.y - hand_origin[1]
+        prev_hand_pos = (wrist.x, wrist.y)
+        return
         
-        target_x = int(mouse_origin[0] + (dx * SCREEN_WIDTH * MOUSE_SENSITIVITY))
-        target_y = int(mouse_origin[1] + (dy * SCREEN_HEIGHT * MOUSE_SENSITIVITY))
+    dx = wrist.x - prev_hand_pos[0]
+    dy = wrist.y - prev_hand_pos[1]
+    
+    move_x = int(dx * 1000 * MOUSE_SENSITIVITY)
+    move_y = int(dy * 1000 * MOUSE_SENSITIVITY)
+    
+    if move_x != 0 or move_y != 0:
+        ctypes.windll.user32.mouse_event(MOUSEEVENTF_MOVE, move_x, move_y, 0, 0)
         
-        try:
-            pyautogui.moveTo(target_x, target_y, _pause=False)
-        except pyautogui.FailSafeException:
-            pass 
+    prev_hand_pos = (wrist.x, wrist.y)
 
 
-def print_result(result, output_image, timestamp_ms):
+def process_result(result, output_image, timestamp_ms):
     global gesture_start_times, held_keys, latest_result
     global mouse_active # Only need mouse_active here to reset it
     
@@ -114,7 +118,7 @@ def print_result(result, output_image, timestamp_ms):
 
     if result.gestures:
         # Check for emergency stop
-        if any(g[0].category_name == 'fist' and g[0].score >= GESTURE_SCORE_THRESHOLD for g in result.gestures):
+        if any(g[0].category_name == 'stop' and g[0].score >= GESTURE_SCORE_THRESHOLD for g in result.gestures):
             for key in list(held_keys): pyautogui.keyUp(key)
             held_keys.clear()
             gesture_start_times.clear()
@@ -189,17 +193,21 @@ def print_result(result, output_image, timestamp_ms):
     for key in (keys_to_hold_this_frame - held_keys):
         # exceptions
         if key == 'none': continue
-        if key == 'controller': continue
+        elif key == 'controller': continue
         # explicit for clicks since they dont have keyDown
-        if key == 'left_click':
-            pyautogui.mouseDown()
+        elif key == 'left_click':
+            pyautogui.mouseDown(button='left')
+        elif key == 'right_click':
+            pyautogui.mouseDown(button='right')
         else:
             pyautogui.keyDown(key)
         held_keys.add(key)
         
     for key in list(held_keys - keys_to_hold_this_frame):
         if key == 'left_click':
-            pyautogui.mouseUp()
+            pyautogui.mouseUp(button='left')
+        elif key == 'right_click':
+            pyautogui.mouseUp(button='right')
         else:
             pyautogui.keyUp(key)
         held_keys.remove(key)
@@ -210,7 +218,7 @@ def main():
         base_options=BaseOptions(model_asset_path=model_path),
         running_mode=VisionRunningMode.LIVE_STREAM,
         num_hands=2,
-        result_callback=print_result
+        result_callback=process_result
     )
 
     recognizer = GestureRecognizer.create_from_options(options)
@@ -237,7 +245,6 @@ def main():
 
         draw_landmarks(frame, latest_result)
 
-        # --- UPDATED RENDERING BLOCK ---
         gesture_count = len(latest_result.gestures) if latest_result and latest_result.gestures else 0
         if latest_result and latest_result.gestures:
             for i, hand_gestures in enumerate(latest_result.gestures):

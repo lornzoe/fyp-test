@@ -106,5 +106,5 @@ WUTHERING_KEY_MAP = {
 
 GESTURE_PROFILES = {
 	'template': DEFAULT_KEY_MAP,
-    'game': WUTHERING_KEY_MAP
+    'wuthering': WUTHERING_KEY_MAP
 }
