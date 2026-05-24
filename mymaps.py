@@ -1,25 +1,5 @@
-# # old hsr
-# GESTURE_KEY_MAP = {
-#     'Pointing_Up': 'w',
-#     'Open_Palm': 'space',
-#     'Thumb_Up': 'a',
-#     'Thumb_Down': 'd',
-#     'ILoveYou': 'q',
-#     'Victory': 'e'
-# }
 
-
-# # For Arknights: Endfield
-# GESTURE_KEY_MAP = {
-#     'Pointing_Up': 'w',
-#     'Open_Palm': 'space',
-#     'Thumb_Up': 'a',
-#     'Thumb_Down': 'd',
-#     'ILoveYou': '1',
-#     'Victory': 'e'
-# }
-
-# template
+# template, for labels (hagridv2)
 DEFAULT_KEY_MAP = {
     'one': 'none',
     'two_up': 'none',
