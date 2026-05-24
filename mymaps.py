@@ -78,7 +78,7 @@ WUTHERING_KEY_MAP = {
     'peace': '2',
     'peace_inverted': 'none',
     'rock': 'none',       # Rock on sign
-    'holy': 'none',
+    'holy': 'esc',
 
     'call': 'none',
     'mute': 'none',
