@@ -1,6 +1,6 @@
 # my jank hand controller
 *part of this readme was generated with ai*
-A quick hand controller demo to utilise mouse control (navigation, click) using OpenCV and Mediapipe.
+A quick hand controller demo for showcasing its use with open-world games.
 
 ## Installation
 
