@@ -1,0 +1,277 @@
+import mediapipe as mp
+import cv2
+import pyautogui
+import time
+import ctypes
+
+from mymaps import GESTURE_PROFILES
+
+# --- Configuration ---
+TAP_THRESHOLD = 0.075
+GESTURE_SCORE_THRESHOLD = 0.7
+MOUSE_SENSITIVITY = 1.5 
+MOUSEEVENTF_MOVE = 0x0001 
+
+pyautogui.PAUSE = 0
+pyautogui.FAILSAFE = False
+
+# Get screen resolution for mouse scaling
+SCREEN_WIDTH, SCREEN_HEIGHT = pyautogui.size()
+
+# Tracking state
+gesture_start_times = {}
+held_keys = set()
+
+# Relative mouse state
+mouse_active = False
+prev_hand_pos = None 
+
+# Global variables for rendering
+latest_result = None
+
+model_path = 'hagridv2_gesture_recognizer.task'
+
+BaseOptions = mp.tasks.BaseOptions
+GestureRecognizer = mp.tasks.vision.GestureRecognizer
+GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
+VisionRunningMode = mp.tasks.vision.RunningMode
+
+GESTURE_KEY_MAP = GESTURE_PROFILES.get('wuthering', {})
+
+# --- CUSTOM DRAWING FUNCTION ---
+def draw_landmarks(image, result):
+    if not result or not result.hand_landmarks:
+        return
+    
+    h, w, _ = image.shape
+    for hand_landmarks in result.hand_landmarks:
+        connections = [
+            (0, 1), (1, 2), (2, 3), (3, 4), # Thumb
+            (5, 6), (6, 7), (7, 8),         # Index
+            (9, 10), (10, 11), (11, 12),    # Middle
+            (13, 14), (14, 15), (15, 16),   # Ring
+            (17, 18), (18, 19), (19, 20),   # Pinky
+            (0, 5), (5, 9), (9, 13), (13, 17), (0, 17) # Palm connections
+        ]
+        
+        points = []
+        for lm in hand_landmarks:
+            points.append((int(lm.x * w), int(lm.y * h)))
+            
+        for connection in connections:
+            start_point = points[connection[0]]
+            end_point = points[connection[1]]
+            cv2.line(image, start_point, end_point, (255, 255, 255), 2)
+            
+        for pt in points:
+            cv2.circle(image, pt, 5, (0, 255, 0), -1)
+
+def movement_controller(gesture_name, landmarks):
+    if gesture_name == 'two_up':
+        return 'w'
+    if gesture_name == 'two_up_inverted':
+        return 's'
+    if gesture_name == 'three_gun' and landmarks:
+        wrist = landmarks[0]
+        index_tip = landmarks[8]
+        if index_tip.x < wrist.x: return 'a'
+        return 'd'
+    return None
+
+def mouse_controller(landmarks):
+    global mouse_active, prev_hand_pos
+    
+    if not landmarks:
+        mouse_active = False
+        prev_hand_pos = None
+        return
+        
+    wrist = landmarks[0] 
+    
+    if not mouse_active:
+        mouse_active = True
+        prev_hand_pos = (wrist.x, wrist.y)
+        return
+        
+    dx = wrist.x - prev_hand_pos[0]
+    dy = wrist.y - prev_hand_pos[1]
+    
+    move_x = int(dx * 1000 * MOUSE_SENSITIVITY)
+    move_y = int(dy * 1000 * MOUSE_SENSITIVITY)
+    
+    if move_x != 0 or move_y != 0:
+        ctypes.windll.user32.mouse_event(MOUSEEVENTF_MOVE, move_x, move_y, 0, 0)
+        
+    prev_hand_pos = (wrist.x, wrist.y)
+
+
+def process_result(result, output_image, timestamp_ms):
+    global gesture_start_times, held_keys, latest_result
+    global mouse_active # Only need mouse_active here to reset it
+    
+    latest_result = result
+    current_time = timestamp_ms / 1000.0  
+    detected_gestures = set()
+    gesture_to_key = {}
+    
+    right_one_detected_this_frame = False
+
+    if result.gestures:
+        # Check for emergency stop
+        if any(g[0].category_name == 'stop' and g[0].score >= GESTURE_SCORE_THRESHOLD for g in result.gestures):
+            for key in list(held_keys): pyautogui.keyUp(key)
+            held_keys.clear()
+            gesture_start_times.clear()
+            mouse_active = False # Reset mouse state
+            return
+
+        for i, hand_gestures in enumerate(result.gestures):
+            gesture = hand_gestures[0]
+            if gesture.score < GESTURE_SCORE_THRESHOLD:
+                continue
+
+            gesture_name = gesture.category_name
+            
+            raw_handedness = result.handedness[i][0].category_name 
+            if raw_handedness == 'Left': handedness = 'Right'
+            elif raw_handedness == 'Right': handedness = 'Left'
+            else: handedness = 'Unknown'
+
+            landmarks = None
+            if result.hand_landmarks and len(result.hand_landmarks) > i:
+                landmarks = result.hand_landmarks[i]
+
+            # mouse controller
+            if gesture_name == 'one' and handedness == 'Right':
+                right_one_detected_this_frame = True
+                mouse_controller(landmarks)
+                continue
+
+            if GESTURE_KEY_MAP.get(gesture_name) == 'controller':
+                # movement controller
+                movement_key = movement_controller(gesture_name, landmarks)
+                if movement_key:
+                    gesture_to_key[gesture_name] = movement_key
+                    detected_gestures.add(gesture_name)
+
+            # default behaviour
+            elif gesture_name in GESTURE_KEY_MAP:
+                gesture_to_key[gesture_name] = GESTURE_KEY_MAP[gesture_name]
+                detected_gestures.add(gesture_name)
+
+    # If we lose the 'one' gesture on the right hand, reset the active state
+    if not right_one_detected_this_frame:
+        mouse_active = False
+
+    keys_to_hold_this_frame = set()
+    for gesture in detected_gestures:
+        base_key = gesture_to_key.get(gesture)
+        if not base_key:
+            continue
+            
+        if GESTURE_KEY_MAP.get(gesture) == 'controller':
+            keys_to_hold_this_frame.add(base_key)
+            gesture_start_times[gesture] = current_time # Keep tracking active
+        else:
+            if gesture not in gesture_start_times:
+                gesture_start_times[gesture] = current_time
+            else:
+                duration = current_time - gesture_start_times[gesture]
+                if duration >= TAP_THRESHOLD:
+                    keys_to_hold_this_frame.add(base_key)
+
+    ended_gestures = set(gesture_start_times.keys()) - detected_gestures
+    for gesture in ended_gestures:
+        if GESTURE_KEY_MAP.get(gesture) != 'controller':
+            key_to_press = gesture_to_key.get(gesture) or GESTURE_KEY_MAP.get(gesture)
+            if key_to_press and current_time - gesture_start_times[gesture] < TAP_THRESHOLD:
+                pyautogui.press(key_to_press)
+        
+        del gesture_start_times[gesture]
+
+    # Sync keys
+    for key in (keys_to_hold_this_frame - held_keys):
+        # exceptions
+        if key == 'none': continue
+        elif key == 'controller': continue
+        # explicit for clicks since they dont have keyDown
+        elif key == 'left_click':
+            pyautogui.mouseDown(button='left')
+        elif key == 'right_click':
+            pyautogui.mouseDown(button='right')
+        else:
+            pyautogui.keyDown(key)
+        held_keys.add(key)
+        
+    for key in list(held_keys - keys_to_hold_this_frame):
+        if key == 'left_click':
+            pyautogui.mouseUp(button='left')
+        elif key == 'right_click':
+            pyautogui.mouseUp(button='right')
+        else:
+            pyautogui.keyUp(key)
+        held_keys.remove(key)
+    return held_keys
+
+def main():
+    options = GestureRecognizerOptions(
+        base_options=BaseOptions(model_asset_path=model_path),
+        running_mode=VisionRunningMode.LIVE_STREAM,
+        num_hands=2,
+        result_callback=process_result
+    )
+
+    recognizer = GestureRecognizer.create_from_options(options)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+    success = cap.set(cv2.CAP_PROP_ZOOM, 0)
+
+    if success:
+        print("Zoom 0 set")
+    else:
+        print("Failed to adjust zoom.")
+    
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret: break
+        frame = cv2.flip(frame, 1)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
+
+        timestamp_ms = int(time.perf_counter() * 1000)
+        recognizer.recognize_async(mp_image, timestamp_ms)
+
+        draw_landmarks(frame, latest_result)
+
+        gesture_count = len(latest_result.gestures) if latest_result and latest_result.gestures else 0
+        if latest_result and latest_result.gestures:
+            for i, hand_gestures in enumerate(latest_result.gestures):
+                gesture = hand_gestures[0]
+                category_name = gesture.category_name
+                score = round(gesture.score * 100, 2)
+
+                # get handedness and flip it, because we're also flipping the feed
+                if latest_result.handedness and len(latest_result.handedness) > i:
+                    raw_handedness = latest_result.handedness[i][0].category_name
+                if raw_handedness == "Left": handedness = "Right"
+                elif raw_handedness == "Right": handedness = "Left"
+                else: handedness = "Unknown"
+
+                gesture_text = f"{handedness}: {category_name} ({score}%)"
+                y = 90 + i * 30
+                cv2.putText(frame, gesture_text, (10, y), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+
+        pressed_text = 'Pressed: ' + (', '.join(sorted(held_keys)) if held_keys else 'none')
+        cv2.putText(frame, pressed_text, (10, 90 + (gesture_count + 1) * 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 255), 2)
+
+        cv2.imshow("Webcam Feed", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'): break
+
+    cap.release()
+    cv2.destroyAllWindows()
+    for key in list(held_keys): pyautogui.keyUp(key)  
+
+if __name__ == '__main__':
+    main()

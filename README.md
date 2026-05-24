@@ -7,10 +7,10 @@ A quick hand controller demo to utilise mouse control (navigation, click) using 
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/lornzoe/fyp-test.git
-   cd your-repo-name
+   cd fyp-test
    ```
 
-2. **Create a Virtual Environment**:
+2. **Create a Virtual Environment (Recommended)**:
    ```bash
    python -m venv .venv
    # Activate on Windows:
@@ -18,7 +18,7 @@ A quick hand controller demo to utilise mouse control (navigation, click) using 
    ```
 
 3. **Install Dependencies**:
-   The project requires the libraries specified in `requirements.txt`, including MediaPipe, OpenCV, PyAutoGUI, and PyDirectInput.
+   The project requires the libraries specified in `requirements.txt`.
    ```bash
    pip install -r requirements.txt
    ```
