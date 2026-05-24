@@ -59,42 +59,49 @@ DEFAULT_KEY_MAP = {
 
 WUTHERING_KEY_MAP = {
 	# for movement control
+    # controller is just a placeholder term
     'two_up': 'controller',
     'two_up_inverted': 'controller',
     'three_gun': 'controller',
 
-	# for minor cursor control
-    'one': '1',
-    'point': 'none',
+    #dodge + jump
+    'like': 'shift',       # Thumbs up
+    'palm': 'space',
 
+    #teammates
+    'one': '1',
+    'peace': '2',
     'three': '3',
-    'three2': 'none',
-    'three3': 'none',
     'four': '4',
 
-    'like': 'none',       # Thumbs up
-    'dislike': 'none',    # Thumbs down
-    'ok': 'F',         # OK sign
-    'peace': '2',
-    'peace_inverted': 'none',
-    'rock': 'none',       # Rock on sign
-    'holy': 'esc',
+    # abilities
+    'rock': 'e',       # Rock on sign
+    'call': 'r',
+    'dislike': 'q',    # Thumbs down
 
-    'call': 'none',
-    'mute': 'none',
-    'stop': 'none',
-    'stop_inverted': 'none',
+    # misc
+    'ok': 'f',         # OK sign
+    'grip': 'alt',
+    'thumb_index': 'left_click',	# L sign
+    'little_finger': 'right_click',
+    'holy': 'esc',
+    'three2': 'tab',
+    'peace_inverted': 't',
+
+    #aiming
+    'three3': 'g',
 
     'fist': 'none',
-    'grabbing': 'none',
-    'grip': 'alt',
-    'palm': 'none',
+    'stop_inverted': 'none',
 
-    'thumb_index': 'left_click',	# L sign
-    'middle_finger': 'none',
-    'little_finger': 'none',
+    # reset
+    'stop': 'none',
 
     # not recommended to use
+    'mute': 'none', # too easy to accidentally trigger
+    'point': 'none', # confused with other gestures
+    'grabbing': 'none', # confused with other gestures 
+    'middle_finger': 'none', # offensive
 }
 
 GESTURE_PROFILES = {
