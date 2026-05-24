@@ -39,19 +39,22 @@ DEFAULT_KEY_MAP = {
 
     'call': 'none',
     'mute': 'none',
-    'point': 'none',
     'stop': 'none',
     'stop_inverted': 'none',
     'three_gun': 'none',
 
     'fist': 'none',
-    'grabbing': 'none',
     'grip': 'none',
     'palm': 'none',
 
     'thumb_index': 'none',	# L sign
     'middle_finger': 'none',
     'little_finger': 'none',
+
+    # based on the model's confusion matrix, these gestures have poor performance and are not recommended to be used
+    'grabbing': 'none',
+    'point': 'none',
+
 }
 
 WUTHERING_KEY_MAP = {
@@ -71,7 +74,7 @@ WUTHERING_KEY_MAP = {
 
     'like': 'none',       # Thumbs up
     'dislike': 'none',    # Thumbs down
-    'ok': 'none',         # OK sign
+    'ok': 'F',         # OK sign
     'peace': '2',
     'peace_inverted': 'none',
     'rock': 'none',       # Rock on sign
@@ -90,6 +93,8 @@ WUTHERING_KEY_MAP = {
     'thumb_index': 'left_click',	# L sign
     'middle_finger': 'none',
     'little_finger': 'none',
+
+    # not recommended to use
 }
 
 GESTURE_PROFILES = {
