@@ -70,6 +70,7 @@ A movement controller (movement_controller()) was made with extra logic to use t
 - Currently the gun, two_up and two_up_inv. gesture is hard-coded for this.
 
 A mouse controller (mouse_controller()) was made to manipulate mouse movement in games. 
+- When active, tracks through the wrist landmark.
 - Uses Python's built in ctypes
 - The implementation is Windows only
 - Requires the right hand to do the one gesture
