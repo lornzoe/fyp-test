@@ -125,6 +125,7 @@ def process_result(result, output_image, timestamp_ms):
             mouse_active = False # Reset mouse state
             return
 
+        # LOOP TO LOOK FOR GESTURES
         for i, hand_gestures in enumerate(result.gestures):
             gesture = hand_gestures[0]
             if gesture.score < GESTURE_SCORE_THRESHOLD:
@@ -163,6 +164,7 @@ def process_result(result, output_image, timestamp_ms):
     if not right_one_detected_this_frame:
         mouse_active = False
 
+    # PUTTING GESTURES' KEYS IN keys_to_hold_this_frame
     keys_to_hold_this_frame = set()
     for gesture in detected_gestures:
         base_key = gesture_to_key.get(gesture)
@@ -177,6 +179,7 @@ def process_result(result, output_image, timestamp_ms):
                 gesture_start_times[gesture] = current_time
             else:
                 duration = current_time - gesture_start_times[gesture]
+                # this is intended to be a buffer to stop accidental inputs from registering
                 if duration >= TAP_THRESHOLD:
                     keys_to_hold_this_frame.add(base_key)
 
@@ -190,6 +193,7 @@ def process_result(result, output_image, timestamp_ms):
         del gesture_start_times[gesture]
 
     # Sync keys
+    # For keys to press down this frame
     for key in (keys_to_hold_this_frame - held_keys):
         # exceptions
         if key == 'none': continue
@@ -202,7 +206,8 @@ def process_result(result, output_image, timestamp_ms):
         else:
             pyautogui.keyDown(key)
         held_keys.add(key)
-        
+
+    # For keys to be released this frame (no longer being held down)    
     for key in list(held_keys - keys_to_hold_this_frame):
         if key == 'left_click':
             pyautogui.mouseUp(button='left')
@@ -222,13 +227,8 @@ def main():
     )
 
     recognizer = GestureRecognizer.create_from_options(options)
+    # Webcam wouldn't start, so I had to use extra options.
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-    success = cap.set(cv2.CAP_PROP_ZOOM, 0)
-
-    if success:
-        print("Zoom 0 set")
-    else:
-        print("Failed to adjust zoom.")
     
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 360)

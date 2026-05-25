@@ -1,5 +1,5 @@
 
-# template, for labels (hagridv2)
+# template, for labels (based on trained hagridv2)
 DEFAULT_KEY_MAP = {
     'one': 'none',
     'two_up': 'none',
@@ -31,7 +31,7 @@ DEFAULT_KEY_MAP = {
     'middle_finger': 'none',
     'little_finger': 'none',
 
-    # based on the model's confusion matrix, these gestures have poor performance and are not recommended to be used
+    # based on the model's confusion matrix, these gestures have poor performance and i wouldn't recommended to be used
     'grabbing': 'none',
     'point': 'none',
 
@@ -84,6 +84,7 @@ WUTHERING_KEY_MAP = {
     'middle_finger': 'none', # offensive
 }
 
+# all the keymaps are compiled to a single object so that we can just import this
 GESTURE_PROFILES = {
 	'template': DEFAULT_KEY_MAP,
     'wuthering': WUTHERING_KEY_MAP
